@@ -2,11 +2,20 @@ import gzip
 import urllib.request
 import xml.etree.ElementTree as ET
 import os
+import urllib.request
+import pprint
+from datetime import datetime
+import codecs
 
-url = 'https://www.sample.fr/sample.xml.gz'
-file = "sample.xml.gz"
+# VARIABLES
+url = 'https://www.sample.fr/sitemap-main-index.xml.gz'
+file = "sitemap-main-index.xml.gz"
+word = 'words/'
+file_name = 'test'
+# END
 
-#TODO refactor in object
+
+# TODO refactor in object
 # TODO if sitemap exist
 
 req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
@@ -75,11 +84,30 @@ def find(file_name,word):
                     compteur = compteur + 1
                     fo.write(child[0].text+"\n")
                     print(child[0].text)
+                    downloadHTML(child[0].text)
+                    if(compteur >= 10):
+                        sys.exit()
+
 
     fo.close()
 
+def downloadHTML( url ):
+    req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
+    con = urllib.request.urlopen(req)
+
+    site_id = url.split('/')[-1]
+
+    now = datetime.now()
+    chain = str(now.year) + '-' + str(now.month) + '-' + str(now.day)
+
+    with codecs.open('archives/' + chain + '-' + site_id + '.html', 'w', encoding='utf8') as f:
+        f.write(con.read().decode('utf-8'))
+
+    f.close()
+
+
 #parcoursAllXML(root)
-find('word')
+find(file_name, word)
 
 f = gzip.open(file, 'rb')
 file_content = f.read()
