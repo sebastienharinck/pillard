@@ -2,94 +2,138 @@ import gzip
 import urllib.request
 import xml.etree.ElementTree as ET
 import os
+import sys
 import urllib.request
-import pprint
 from datetime import datetime
 import codecs
 
 # VARIABLES
-url = 'https://www.sample.fr/sitemap-main-index.xml.gz'
-file = "sitemap-main-index.xml.gz"
-word = 'words/'
-file_name = 'test'
+
+
+
 # END
 
+# TODO init projet (Création des dossiers)
+def createfolder(folder):
+    if folder != "":
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-# TODO refactor in object
-# TODO if sitemap exist
-
-req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
-response = urllib.request.urlopen(req)
-
-zipcontent = response.read()
-
-with open(file, 'wb') as f:
-    f.write(zipcontent)
-
-
-# 0 unzip file
-
-def unzip(file):
-    inF = gzip.GzipFile( file , 'rb')
+def unzip(fileGz):
+    inF = gzip.GzipFile(fileGz, 'rb')
     s = inF.read()
     inF.close()
 
-    new_file = file.replace(".gz", "")
+    # unzip FILE
+    new_file = fileGz.replace(".gz", "")
 
-    outF = open( new_file , "wb")
+    outF = open(new_file, "wb")
     outF.write(s)
     outF.close()
+    return new_file
 
-    # 1 get All URL
-    tree = ET.parse( new_file )
+# TODO récup premier sitemap (url, file) => création d'un fichier xml : fileXML
+
+def getGzpByURL(url):
+
+    fileSiteMap = url.rsplit('/', 1)[1]
+    print(fileSiteMap)
+    if not (os.path.exists(fileSiteMap.replace(".gz", ""))):
+        if not (os.path.exists(fileSiteMap)):
+            print("GZ not exist firstUrl")
+            req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
+            response = urllib.request.urlopen(req)
+
+            zipcontent= response.read()
+
+            with open(fileSiteMap, 'wb') as f:
+                f.write(zipcontent)
+            # Récup gz via l'url
+        else:
+            print("GZ exist")
+        new_file = unzip(fileSiteMap)
+    else:
+        print("NO REQUETE URL")
+        new_file = fileSiteMap.replace(".gz", "")
+    tree = ET.parse(new_file)
     root = tree.getroot()
+    return root
 
-unzip(file)
+
+# TODO parcours toutes les sous sitemaps( fileXML)
+# 1 get All URL
+
+
 def parcoursAllXML(root):
-    for child in root:
-        url = child[0].text
-        file = "xml/"+url.rsplit('/',1)[1]
-        print(file)
+    if not (os.path.exists("sitemap/xml")):
+        createfolder("sitemap")
+        createfolder("sitemap/gz")
+        createfolder("sitemap/xml")
+        for child in root:
+            url = child[0].text
+            print(url)
+            file = url.rsplit('/', 1)[1]
 
-        req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
-        response = urllib.request.urlopen(req)
+            req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
+            response = urllib.request.urlopen(req)
 
-        zipcontent = response.read()
+            zipcontent = response.read()
+            # print(zipcontent)
 
-        with open(file, 'wb') as f:
-            f.write(zipcontent)
+            with open("sitemap/gz/"+file, 'wb') as f:
+                f.write(zipcontent)
 
-        # unzip file
-        inF = gzip.GzipFile(file, 'rb')
-        s = inF.read()
-        inF.close()
+            # 0 unzip file
+            inF = gzip.GzipFile("sitemap/gz/"+file, 'rb')
+            s = inF.read()
+            inF.close()
 
-        new_file = file.replace(".gz", "")
-        new_file = "xml/"+new_file
-        outF = open(new_file, "wb")
-        outF.write(s)
-        outF.close()
+            new_file = file.replace(".gz", "")
+            new_file = "sitemap/xml/" + new_file
+            outF = open(new_file, "wb")
+            outF.write(s)
+            outF.close()
 
-def find(file_name,word):
-    fo = open(file_name, "w")
+
+
+
+
+
+# TODO récupere tous les gz dans sitemaps/gz
+# TODO Parcours tout les gz , dézip dans sitemaps/xml
+# TODO Parcours tout les sitemaps/xml.
+
+
+# TODO Recherche tout les urls contenant "rooms/"
+def findInAllXML(folder,word):
+    createfolder("archives")
+    fo = open('test','w')
     compteur = 0
-    for file in os.listdir("xml/xml"):
+    for file in os.listdir(folder):
         if file.endswith(".xml"):
-            # print(file)
-            tree = ET.parse("xml/xml/"+file)
-            test = tree.getroot()
-            for child in test:
-                if ( word in child[0].text):
+            tree = ET.parse(folder+"/"+file)
+
+            root = tree.getroot()
+            for child in root:
+
+                if (word in child[0].text):
                     print(compteur)
                     compteur = compteur + 1
-                    fo.write(child[0].text+"\n")
                     print(child[0].text)
-                    downloadHTML(child[0].text)
+                    fo.write(child[0].text+"\n") #On stocke l'URL dans fichier test
+                    downloadHTML(child[0].text) # Download le html de l'url
                     if(compteur >= 10):
                         sys.exit()
 
 
     fo.close()
+
+# TODO Stockage dans un fichier : urlRooms
+# TODO Parcours url du fichier : urlRooms
+# TODO Télécharge tout les html jusqu'à 10 dans dossier archives/dateAujourd'hui/dateAujourd'hui_ID.html
+
+# TODO refactor in object
+# TODO if sitemap exist
 
 def downloadHTML( url ):
     req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
@@ -105,10 +149,14 @@ def downloadHTML( url ):
 
     f.close()
 
+def main():
 
-#parcoursAllXML(root)
-find(file_name, word)
+    firstUrl = 'yourUrl'
 
-f = gzip.open(file, 'rb')
-file_content = f.read()
-f.close()
+    root = getGzpByURL(firstUrl) # Get the first sitemap GZ and unzip
+    parcoursAllXML(root)
+    word = 'test'
+    findInAllXML('sitemap/xml/', word)
+
+
+main()
