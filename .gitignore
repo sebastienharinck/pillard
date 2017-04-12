@@ -2,3 +2,6 @@ xml/
 .idea/
 sitemap-main-index.xml
 sitemap-main-index.xml.gz
+sitemap/
+archives/
+test
